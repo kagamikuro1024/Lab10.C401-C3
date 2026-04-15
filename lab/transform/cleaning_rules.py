@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -121,7 +122,26 @@ def clean_rows(
             continue
         seen_text.add(key)
 
+        # === Rule mới 7: Replacement character quarantine (Owner: Đạt) ===
+        # Chunk chứa U+FFFD = lỗi encoding nghiêm trọng → quarantine
+        # metric_impact: quarantine_records +1 nếu inject chunk có ký tự replacement
+        if '\ufffd' in text:
+            quarantine.append({**raw, "reason": "contains_replacement_char_encoding_error"})
+            continue
+
         fixed_text = text
+
+        # === Rule mới 8: BOM strip (Owner: Đạt) ===
+        # Loại BOM character (\ufeff) đầu chunk_text
+        # metric_impact: chunk_text thay đổi nếu có BOM; có thể inject để verify
+        if fixed_text.startswith('\ufeff'):
+            fixed_text = fixed_text.lstrip('\ufeff')
+
+        # === Rule mới 9: Unicode NFKC normalize (Owner: Đạt) ===
+        # Chuẩn hoá full-width → half-width, diacritics consistency
+        # metric_impact: content hash thay đổi nếu có unicode bất thường
+        fixed_text = unicodedata.normalize("NFKC", fixed_text)
+
         if apply_refund_window_fix and doc_id == "policy_refund_v4":
             if "14 ngày làm việc" in fixed_text:
                 fixed_text = fixed_text.replace(
@@ -140,27 +160,6 @@ def clean_rows(
                 "exported_at": exported_at or "",
             }
         )
-
-        # === Rule mới 7: BOM strip ===
-        # Loại BOM character (\ufeff) đầu chunk_text — metric_impact: quarantine nếu inject BOM
-        # Owner: Đạt
-        if fixed_text.startswith('\ufeff'):
-            fixed_text = fixed_text.lstrip('\ufeff')
-            fixed_text += " [cleaned: bom_stripped]"
-
-        import unicodedata
-
-        # === Rule mới 8: Unicode NFKC normalize ===
-        # Chuẩn hoá unicode NFKC để tránh cùng nội dung nhưng encoding khác → metric_impact: content_hash thay đổi
-        # Owner: Đạt
-        fixed_text = unicodedata.normalize("NFKC", fixed_text)
-
-        # === Rule mới 9: Flag replacement character (U+FFFD) ===
-        # Quarantine chunk chứa ký tự thay thế (lỗi encoding nghiêm trọng) — metric_impact: quarantine_records tăng
-        # Owner: Đạt
-        if '\ufffd' in text:
-            quarantine.append({**raw, "reason": "contains_replacement_char_encoding_error"})
-            continue
     return cleaned, quarantine
 
 

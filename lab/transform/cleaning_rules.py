@@ -141,6 +141,26 @@ def clean_rows(
             }
         )
 
+        # === Rule mới 7: BOM strip ===
+        # Loại BOM character (\ufeff) đầu chunk_text — metric_impact: quarantine nếu inject BOM
+        # Owner: Đạt
+        if fixed_text.startswith('\ufeff'):
+            fixed_text = fixed_text.lstrip('\ufeff')
+            fixed_text += " [cleaned: bom_stripped]"
+
+        import unicodedata
+
+        # === Rule mới 8: Unicode NFKC normalize ===
+        # Chuẩn hoá unicode NFKC để tránh cùng nội dung nhưng encoding khác → metric_impact: content_hash thay đổi
+        # Owner: Đạt
+        fixed_text = unicodedata.normalize("NFKC", fixed_text)
+
+        # === Rule mới 9: Flag replacement character (U+FFFD) ===
+        # Quarantine chunk chứa ký tự thay thế (lỗi encoding nghiêm trọng) — metric_impact: quarantine_records tăng
+        # Owner: Đạt
+        if '\ufffd' in text:
+            quarantine.append({**raw, "reason": "contains_replacement_char_encoding_error"})
+            continue
     return cleaned, quarantine
 
 

@@ -112,5 +112,47 @@ def run_expectations(cleaned_rows: List[Dict[str, Any]]) -> Tuple[List[Expectati
         )
     )
 
+    # E7: chunk_id phải unique — phát hiện hash collision hoặc logic sai
+    # Owner: Đạt
+    # Severity: halt — trùng chunk_id sẽ overwrite khi upsert
+    seen_ids = set()
+    dup_ids = []
+    for r in cleaned_rows:
+        cid = r.get("chunk_id", "")
+        if cid in seen_ids:
+            dup_ids.append(cid)
+        seen_ids.add(cid)
+    ok7 = len(dup_ids) == 0
+    results.append(
+        ExpectationResult(
+            "chunk_id_unique",
+            ok7,
+            "halt",
+            f"duplicate_chunk_ids={len(dup_ids)}",
+        )
+    )
+
+    # E8: exported_at không được ở tương lai — phát hiện clock drift hoặc inject sai timestamp
+    # Owner: Đạt
+    # Severity: warn — có thể chấp nhận nhưng cần ghi nhận
+    import re as _re
+    from datetime import datetime as _dt, timezone as _tz
+
+    future_rows = []
+    now_str = _dt.now(_tz.utc).isoformat()
+    for r in cleaned_rows:
+        exp = (r.get("exported_at") or "").strip()
+        if exp and exp > now_str:
+            future_rows.append(exp)
+    ok8 = len(future_rows) == 0
+    results.append(
+        ExpectationResult(
+            "exported_at_not_future",
+            ok8,
+            "warn",
+            f"future_exported_at={len(future_rows)}",
+        )
+    )
+
     halt = any(not r.passed and r.severity == "halt" for r in results)
     return results, halt

@@ -70,11 +70,7 @@ quarantine_records=4
 ```bash
 git add contracts/data_contract.yaml docs/data_contract.md
 git add artifacts/logs/ artifacts/manifests/
-git commit -m "[Sprint 1] ingestion: fill data_contract + source map + verify raw logging
-
-- data_contract.yaml: owner_team, alert_channel filled
-- data_contract.md: source map 2 sources (CSV export + docs files)
-- Verified: raw_records=10, cleaned_records=6, quarantine_records=4"
+git commit -m "[Sprint 1] ingestion: fill data_contract + source map + verify raw logging- data_contract.yaml: owner_team, alert_channel filled- data_contract.md: source map 2 sources (CSV export + docs files)- Verified: raw_records=10, cleaned_records=6, quarantine_records=4"
 git push origin feature/ingestion
 ```
 
@@ -182,9 +178,9 @@ git push origin feature/ingestion
 
 | Deliverable | Sprint | Trạng thái |
 |---|---|---|
-| `contracts/data_contract.yaml` — fill owner, SLA | 1 | ☐ |
-| `docs/data_contract.md` — source map ≥2 nguồn | 1 | ☐ |
-| Verify pipeline log format (run_id, raw, clean, quar) | 1 | ☐ |
+| `contracts/data_contract.yaml` — fill owner, SLA | 1 | ✅ |
+| `docs/data_contract.md` — source map ≥2 nguồn | 1 | ✅ |
+| Verify pipeline log format (run_id, raw, clean, quar) | 1 | ✅ |
 | Sync data_contract.yaml với rules mới | 2 | ☐ |
 | Evidence inject before/after | 3 | ☐ |
 | `reports/individual/Nghia.md` (400-650 từ) | 4 | ☐ |
